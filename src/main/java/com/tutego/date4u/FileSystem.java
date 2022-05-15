@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 @Component
 public class FileSystem {
 
-  private final Path root = Paths.get( System.getProperty( "user.home" ) ).resolve( "fs" );
+  private final Path root = Paths.get( System.getProperty( "user.home" ) ).resolve( "fs" ).toAbsolutePath().normalize();
 
   public FileSystem() {
     if ( !Files.isDirectory( root ) ) {
@@ -30,7 +30,8 @@ public class FileSystem {
 
   public byte[] load( String filename ) {
     try {
-      return Files.readAllBytes( root.resolve( filename ) );
+      Path path = resolve( filename );
+      return Files.readAllBytes( path );
     }
     catch ( IOException e ) {
       throw new UncheckedIOException( e );
@@ -39,11 +40,18 @@ public class FileSystem {
 
   public void store( String filename, byte[] bytes ) {
     try {
-      Files.write( root.resolve( filename ), bytes );
+      Files.write( resolve( filename ), bytes );
     }
     catch ( IOException e ) {
       throw new UncheckedIOException( e );
     }
-
   }
+
+  private Path resolve( String filename ) {
+    Path path = root.resolve( filename ).toAbsolutePath().normalize();
+    if ( !path.startsWith( root ) )
+      throw new SecurityException( "Access to " + path + " denied" );
+    return path;
+  }
+
 }
